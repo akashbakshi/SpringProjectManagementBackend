@@ -5,6 +5,8 @@ import com.bubble.projectmanagementapp.dtos.UserRegistration
 import com.bubble.projectmanagementapp.models.User
 import com.bubble.projectmanagementapp.repository.UserRepository
 import jakarta.persistence.UniqueConstraint
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -22,7 +24,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @RestController
 @RequestMapping("/api/v1/users/")
-class UserController(private val userRepository: UserRepository) {
+class UserController(private val userRepository: UserRepository, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
 
     @GetMapping
     fun getAllUsers():ResponseEntity<List<User>>{
@@ -58,7 +60,17 @@ class UserController(private val userRepository: UserRepository) {
     fun authenticateUser(@RequestBody credentials: UserCredentials):ResponseEntity<User?>{
         val userToAuth = userRepository.findById(credentials.username).getOrNull() ?: return ResponseEntity.badRequest().body(null)
 
-        if(!BCryptPasswordEncoder().matches(credentials.password,userToAuth.password)){
+        // TODO: replace with JWT generation after authenticating user
+        if(!BCryptPasswordEncoder().matches(credentials.password,userToAuth.password) || userToAuth.lockout){
+
+            userToAuth.failedAttemps++
+
+            //lock the user's account if they've made too many failed login attempts
+            if(userToAuth.failedAttemps >= maxLoginAttempts)
+                userToAuth.lockout = true
+
+
+            userRepository.save(userToAuth)
 
             return ResponseEntity.badRequest().body(null)
         }
@@ -76,13 +88,15 @@ class UserController(private val userRepository: UserRepository) {
 
         try{
 
-            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null)
-            newUser.password = BCryptPasswordEncoder().encode(userDTO.password)
+            //Create the entity that will go in our DB
+            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0)
+            newUser.password = BCryptPasswordEncoder().encode(userDTO.password) // encrypt the password
             userRepository.save(newUser)
 
             return ResponseEntity.created(URI.create("/api/v1/users/${newUser.username}")).body("")
         }
         catch(integrityException: DataIntegrityViolationException){
+            //check exceptions for duplicate email exception
             if(integrityException.stackTraceToString().contains("users_email_key")){
 
                 return ResponseEntity.badRequest().body("An account with the email ${userDTO.email} already exists")

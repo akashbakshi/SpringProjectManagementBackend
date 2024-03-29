@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN failed_attempts integer not null default 0;

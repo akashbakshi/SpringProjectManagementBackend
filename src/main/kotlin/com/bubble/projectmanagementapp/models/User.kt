@@ -30,5 +30,9 @@ class User (
     var passwordResetToken: String?,
 
     @Column(name = "password_reset_date")
-    var passwordResetDate: LocalDateTime?
+    var passwordResetDate: LocalDateTime?,
+    var lockout: Boolean,
+
+    @Column(name ="failed_attempts")
+    var failedAttemps: Int
 )

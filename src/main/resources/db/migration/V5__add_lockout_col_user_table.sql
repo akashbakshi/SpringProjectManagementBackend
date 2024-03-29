@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN lockout boolean not null default false;
