@@ -4,10 +4,13 @@ import com.bubble.projectmanagementapp.dtos.UserCredentials
 import com.bubble.projectmanagementapp.dtos.UserRegistration
 import com.bubble.projectmanagementapp.models.User
 import com.bubble.projectmanagementapp.repository.UserRepository
+import com.bubble.projectmanagementapp.services.JWTService
 import jakarta.persistence.UniqueConstraint
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.web.bind.annotation.GetMapping
@@ -24,7 +27,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @RestController
 @RequestMapping("/api/v1/users/")
-class UserController(private val userRepository: UserRepository, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
+class UserController(private val userRepository: UserRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
 
     @GetMapping
     fun getAllUsers():ResponseEntity<List<User>>{
@@ -75,7 +78,15 @@ class UserController(private val userRepository: UserRepository, @Value("\${user
             return ResponseEntity.badRequest().body(null)
         }
 
-        return ResponseEntity.ok(userToAuth)
+        val accessToken = tokenService.generateAccessToken(userToAuth)
+        val refreshToken = tokenService.generateRefreshToken(userToAuth)
+
+        val headers = HttpHeaders()
+
+        headers.add("accessToken",accessToken)
+        headers.add("refreshToken",refreshToken)
+
+        return ResponseEntity(userToAuth,headers, HttpStatus.OK)
     }
 
     @PostMapping
