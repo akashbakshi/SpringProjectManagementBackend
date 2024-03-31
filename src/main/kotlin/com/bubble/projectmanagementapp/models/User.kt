@@ -1,9 +1,7 @@
 package com.bubble.projectmanagementapp.models
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity(name = "users")
@@ -34,5 +32,12 @@ class User (
     var lockout: Boolean,
 
     @Column(name ="failed_attempts")
-    var failedAttemps: Int
+    var failedAttemps: Int,
+
+    @ManyToMany
+    @JoinTable(
+            name = "users_roles",
+            joinColumns = [JoinColumn(name = "userid")],
+            inverseJoinColumns = [JoinColumn(name = "roleid")])
+    var roles: Set<Role>
 )

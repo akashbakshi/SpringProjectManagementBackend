@@ -2,7 +2,9 @@ package com.bubble.projectmanagementapp.controllers
 
 import com.bubble.projectmanagementapp.dtos.UserCredentials
 import com.bubble.projectmanagementapp.dtos.UserRegistration
+import com.bubble.projectmanagementapp.models.Role
 import com.bubble.projectmanagementapp.models.User
+import com.bubble.projectmanagementapp.repository.RoleRepository
 import com.bubble.projectmanagementapp.repository.UserRepository
 import com.bubble.projectmanagementapp.services.JWTService
 import jakarta.persistence.UniqueConstraint
@@ -27,7 +29,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @RestController
 @RequestMapping("/api/v1/users/")
-class UserController(private val userRepository: UserRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
+class UserController(private val userRepository: UserRepository,private val roleRepository: RoleRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
 
     @GetMapping
     fun getAllUsers():ResponseEntity<List<User>>{
@@ -99,8 +101,22 @@ class UserController(private val userRepository: UserRepository,private val toke
 
         try{
 
+            val userRole = roleRepository.findByNormalizedName("USER") // find the default user role
+
+            if(userRole == null){
+                println("WARNING: USER role can't be found in the db") // Change to logger once implemented
+            }
+
+
+            val rolesToAdd = mutableSetOf<Role>()
+
+            // add role to mutable set if it exists in our DB
+            userRole?.let{
+                rolesToAdd.add(it)
+            }
+
             //Create the entity that will go in our DB
-            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0)
+            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0,rolesToAdd.toSet() )
             newUser.password = BCryptPasswordEncoder().encode(userDTO.password) // encrypt the password
             userRepository.save(newUser)
 

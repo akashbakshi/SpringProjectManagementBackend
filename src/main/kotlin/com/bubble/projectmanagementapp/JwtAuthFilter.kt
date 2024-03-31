@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 
 @Component
-class JwtAuthFilter(private val jwtService: JWTService, private val userRepository: UserRepository,private val userDetailService: CustomUserDetailService): OncePerRequestFilter() {
+class JwtAuthFilter(private val jwtService: JWTService,private val userDetailService: CustomUserDetailService): OncePerRequestFilter() {
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
 
         val authHeader = request.getHeader("Authorization")
