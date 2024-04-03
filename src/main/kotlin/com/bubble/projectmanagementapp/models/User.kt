@@ -34,7 +34,7 @@ class User (
     @Column(name ="failed_attempts")
     var failedAttemps: Int,
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "users_roles",
             joinColumns = [JoinColumn(name = "userid")],

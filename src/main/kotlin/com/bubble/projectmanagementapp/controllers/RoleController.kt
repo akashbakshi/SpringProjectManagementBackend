@@ -6,6 +6,7 @@ import com.bubble.projectmanagementapp.models.User
 import com.bubble.projectmanagementapp.repository.RoleRepository
 import com.bubble.projectmanagementapp.repository.UserRepository
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -21,6 +22,7 @@ import kotlin.jvm.optionals.getOrNull
 class RoleController(private val roleRepository: RoleRepository, private val userRepository: UserRepository ) {
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     fun getAllRoles():ResponseEntity<List<Role>>{
         val allRoles = roleRepository.findAll().toList()
 
@@ -29,6 +31,7 @@ class RoleController(private val roleRepository: RoleRepository, private val use
 
     @GetMapping
     @RequestMapping("{role}")
+    @PreAuthorize("hasRole('ADMIN')")
     fun findAllUsersInRole(@PathVariable("role") roleName: String): ResponseEntity<List<User>>{
         val usersInRole = roleRepository.findUsersInRoleByName(roleName.uppercase())
 
@@ -37,6 +40,7 @@ class RoleController(private val roleRepository: RoleRepository, private val use
 
     @PostMapping
     @RequestMapping("/user")
+    @PreAuthorize("hasRole('ADMIN')")
     fun associateRoleToUser(@RequestBody userRole: UserRole): ResponseEntity<*>{
 
         //We need to get the role and user profile from our DB to associate it

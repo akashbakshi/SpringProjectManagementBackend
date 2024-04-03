@@ -26,7 +26,8 @@ class JWTService(
 
     private fun getClaims(user: User): Map<String,String>{
 
-        val claims = mapOf("email" to user.email)
+        val claims = mapOf("email" to user.email, "roles" to user.roles.map { it.name }.toString())
+
         return claims
     }
     fun generateAccessToken(user: User):String{
@@ -40,6 +41,17 @@ class JWTService(
                 .setExpiration(Date(System.currentTimeMillis()+ (1000*60*accessTokenExpirationInMinutes)))
                 .signWith(secretKey,SignatureAlgorithm.HS256)
                 .compact()
+    }
+
+    fun isTokenExpired(token:String): Boolean{
+
+        try{
+
+            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token)
+            return false
+        }catch (expException: io.jsonwebtoken.ExpiredJwtException){
+            return true
+        }
     }
 
     fun generateRefreshToken(user: User):String{

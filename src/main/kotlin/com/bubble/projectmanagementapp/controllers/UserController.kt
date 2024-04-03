@@ -14,6 +14,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -32,6 +33,7 @@ import kotlin.jvm.optionals.getOrNull
 class UserController(private val userRepository: UserRepository,private val roleRepository: RoleRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     fun getAllUsers():ResponseEntity<List<User>>{
         val allUsers = userRepository.findAll().toList()
 

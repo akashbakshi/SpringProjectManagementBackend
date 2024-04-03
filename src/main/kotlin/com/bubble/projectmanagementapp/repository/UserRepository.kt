@@ -8,8 +8,9 @@ import org.springframework.stereotype.Repository
 @Repository
 interface UserRepository: CrudRepository<User, String> {
 
+    @Query("select u from users u join u.roles r where u.name like '%?1%'")
     fun findByEmail(email: String): User?
 
-    @Query("select u from users u where u.name like '%?1%'")
+    @Query("select u from users u join u.roles r where u.name like '%?1%'")
     fun findByName(name: String): List<User>
 }

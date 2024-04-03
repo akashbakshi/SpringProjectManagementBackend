@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthFilter(private val jwtService: JWTService,private val userDetailService: CustomUserDetailService): OncePerRequestFilter() {
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
 
+        val allowedEndpoints = mapOf<String,String>("/error/**" to "GET","/api/v1/users/" to "POST","/api/v1/users/login" to "POST")
         val authHeader = request.getHeader("Authorization")
 
         var token = ""
@@ -24,16 +25,28 @@ class JwtAuthFilter(private val jwtService: JWTService,private val userDetailSer
 
         if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.replace("Bearer ","")
-            username = jwtService.getClaimsFromToken(token).subject
         }
 
-        if(username.isNotBlank() && SecurityContextHolder.getContext().authentication == null){
+        //Only execute for all routes that require auth
+        println(allowedEndpoints.contains(request.requestURI.toString()))
+        println(allowedEndpoints[request.requestURI.toString()])
+        if(!allowedEndpoints.contains(request.requestURI.toString()) && request.method != allowedEndpoints[request.requestURI.toString()] ){
 
-            val userDetails = userDetailService.loadUserByUsername(username)
+            if( authHeader == null || jwtService.isTokenExpired(token) ){
+                response.status = HttpServletResponse.SC_UNAUTHORIZED
+                return
+            }
 
-            val authenticationToken = UsernamePasswordAuthenticationToken(userDetails,null,userDetails.authorities)
-            authenticationToken.details = WebAuthenticationDetailsSource().buildDetails(request)
-            SecurityContextHolder.getContext().authentication = authenticationToken
+            username = jwtService.getClaimsFromToken(token).subject
+            if(username.isNotBlank() && SecurityContextHolder.getContext().authentication == null){
+
+                val userDetails = userDetailService.loadUserByUsername(username)
+
+                val authenticationToken = UsernamePasswordAuthenticationToken(userDetails,null,userDetails.authorities)
+                authenticationToken.details = WebAuthenticationDetailsSource().buildDetails(request)
+                SecurityContextHolder.getContext().authentication = authenticationToken
+
+            }
 
         }
 
