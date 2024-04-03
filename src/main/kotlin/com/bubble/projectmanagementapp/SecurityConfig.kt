@@ -26,6 +26,7 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter,private val custom
                     it.requestMatchers("/error/**").permitAll()
                     it.requestMatchers(HttpMethod.POST,"/api/v1/users/").permitAll()
                     it.requestMatchers(HttpMethod.POST,"/api/v1/users/login").permitAll()
+                    it.requestMatchers(HttpMethod.POST,"/api/v1/users/logout").permitAll()
                     it.requestMatchers("/api/v1/**").authenticated()
 
                 }

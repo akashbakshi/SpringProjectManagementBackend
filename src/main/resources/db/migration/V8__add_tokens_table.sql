@@ -1,0 +1,1 @@
+CREATE TABLE tokens(id serial not null primary key, username varchar(512) not null, access_token varchar(512) not null,refresh_token varchar(512) not null, is_valid boolean not null,date_created timestamp default now(), date_invalidated timestamp, foreign key (username) references users(username));

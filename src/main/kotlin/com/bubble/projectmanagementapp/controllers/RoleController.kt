@@ -29,8 +29,7 @@ class RoleController(private val roleRepository: RoleRepository, private val use
         return ResponseEntity.ok(allRoles)
     }
 
-    @GetMapping
-    @RequestMapping("{role}")
+    @GetMapping("{role}")
     @PreAuthorize("hasRole('ADMIN')")
     fun findAllUsersInRole(@PathVariable("role") roleName: String): ResponseEntity<List<User>>{
         val usersInRole = roleRepository.findUsersInRoleByName(roleName.uppercase())
@@ -38,8 +37,7 @@ class RoleController(private val roleRepository: RoleRepository, private val use
         return ResponseEntity.ok(usersInRole)
     }
 
-    @PostMapping
-    @RequestMapping("/user")
+    @PostMapping("/user")
     @PreAuthorize("hasRole('ADMIN')")
     fun associateRoleToUser(@RequestBody userRole: UserRole): ResponseEntity<*>{
 

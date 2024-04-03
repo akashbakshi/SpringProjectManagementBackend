@@ -2,9 +2,12 @@ package com.bubble.projectmanagementapp.controllers
 
 import com.bubble.projectmanagementapp.dtos.UserCredentials
 import com.bubble.projectmanagementapp.dtos.UserRegistration
+import com.bubble.projectmanagementapp.dtos.UserTokens
 import com.bubble.projectmanagementapp.models.Role
+import com.bubble.projectmanagementapp.models.Token
 import com.bubble.projectmanagementapp.models.User
 import com.bubble.projectmanagementapp.repository.RoleRepository
+import com.bubble.projectmanagementapp.repository.TokenRepository
 import com.bubble.projectmanagementapp.repository.UserRepository
 import com.bubble.projectmanagementapp.services.JWTService
 import jakarta.persistence.UniqueConstraint
@@ -30,7 +33,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @RestController
 @RequestMapping("/api/v1/users/")
-class UserController(private val userRepository: UserRepository,private val roleRepository: RoleRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
+class UserController(private val userRepository: UserRepository,private val tokenRepository: TokenRepository,private val roleRepository: RoleRepository,private val tokenService: JWTService, @Value("\${user.max_login_attempts}") val maxLoginAttempts: Int) {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -40,8 +43,7 @@ class UserController(private val userRepository: UserRepository,private val role
         return ResponseEntity.ok(allUsers)
     }
 
-    @GetMapping
-    @RequestMapping("{username}")
+    @GetMapping("{username}")
     fun getUserByUsername(@PathVariable("username") username:String): ResponseEntity<User?>{
 
         val userToFind = userRepository.findById(username).getOrNull() ?: return ResponseEntity.badRequest().body(null)
@@ -49,8 +51,7 @@ class UserController(private val userRepository: UserRepository,private val role
         return ResponseEntity.ok(userToFind)
     }
 
-    @GetMapping
-    @RequestMapping("search")
+    @GetMapping("search")
     fun getUserByName(@RequestParam("name") name: String?):ResponseEntity<List<User>>{
 
         if(name.isNullOrBlank()){
@@ -62,18 +63,34 @@ class UserController(private val userRepository: UserRepository,private val role
         return ResponseEntity.ok(usersMatchingName)
     }
 
-    @PostMapping
-    @RequestMapping("login")
+    @PostMapping("logout")
+    fun logout(@RequestBody token: UserTokens): ResponseEntity<*>{
+        var tokenToInvalidate = tokenRepository.findByAccessToken(token.accessToken) ?: return ResponseEntity.badRequest().body("invalid token")
+
+        tokenToInvalidate.dateInvalidated = LocalDateTime.now()
+        tokenToInvalidate.isValid = false
+
+        try{
+            tokenRepository.save(tokenToInvalidate)
+
+            return ResponseEntity.ok().body(null)
+        }catch(ex: Exception){
+            println(ex.message)
+            println(ex.stackTrace)
+            return ResponseEntity.internalServerError().body("Failed to logout")
+        }
+    }
+
+    @PostMapping("login")
     fun authenticateUser(@RequestBody credentials: UserCredentials):ResponseEntity<User?>{
         val userToAuth = userRepository.findById(credentials.username).getOrNull() ?: return ResponseEntity.badRequest().body(null)
 
-        // TODO: replace with JWT generation after authenticating user
         if(!BCryptPasswordEncoder().matches(credentials.password,userToAuth.password) || userToAuth.lockout){
 
-            userToAuth.failedAttemps++
+            userToAuth.failedAttempts++
 
             //lock the user's account if they've made too many failed login attempts
-            if(userToAuth.failedAttemps >= maxLoginAttempts)
+            if(userToAuth.failedAttempts >= maxLoginAttempts)
                 userToAuth.lockout = true
 
 
@@ -84,6 +101,15 @@ class UserController(private val userRepository: UserRepository,private val role
 
         val accessToken = tokenService.generateAccessToken(userToAuth)
         val refreshToken = tokenService.generateRefreshToken(userToAuth)
+
+        try{
+            val newTokenEntry = Token(0,accessToken,refreshToken, LocalDateTime.now(),null,true,userToAuth)
+            tokenRepository.save(newTokenEntry)
+
+        }catch (ex: Exception){
+            println(ex.message)
+            println(ex.stackTrace)
+        }
 
         val headers = HttpHeaders()
 
@@ -118,7 +144,7 @@ class UserController(private val userRepository: UserRepository,private val role
             }
 
             //Create the entity that will go in our DB
-            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0,rolesToAdd.toSet() )
+            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0,rolesToAdd.toSet(), emptySet() )
             newUser.password = BCryptPasswordEncoder().encode(userDTO.password) // encrypt the password
             userRepository.save(newUser)
 

@@ -1,5 +1,6 @@
 package com.bubble.projectmanagementapp.models
 
+import com.fasterxml.jackson.annotation.JsonBackReference
 import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -32,12 +33,17 @@ class User (
     var lockout: Boolean,
 
     @Column(name ="failed_attempts")
-    var failedAttemps: Int,
+    var failedAttempts: Int,
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "users_roles",
             joinColumns = [JoinColumn(name = "userid")],
             inverseJoinColumns = [JoinColumn(name = "roleid")])
-    var roles: Set<Role>
+    var roles: Set<Role>,
+
+    @OneToMany(mappedBy = "username")
+    @JsonBackReference
+    var tokens: Set<Token>
+
 )
