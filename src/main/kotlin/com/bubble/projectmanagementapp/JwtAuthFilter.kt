@@ -18,7 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthFilter(private val jwtService: JWTService,private val tokenRepository: TokenRepository,private val userDetailService: CustomUserDetailService): OncePerRequestFilter() {
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
 
-        val allowedEndpoints = mapOf<String,String>("/error/**" to "GET","/api/v1/users/" to "POST","/api/v1/users/login" to "POST","/api/v1/users/logout" to "POST")
+        val allowedEndpoints = mapOf<String,String>("/error/**" to "GET","/api/v1/users/" to "POST","/api/v1/users/login" to "POST","/api/v1/users/logout" to "POST","/api/v1/setup/welcome" to "GET")
         val authHeader = request.getHeader("Authorization")
 
         var token = ""
@@ -36,7 +36,7 @@ class JwtAuthFilter(private val jwtService: JWTService,private val tokenReposito
                 return
             }
 
-            //We assume we're mostly using access tokens so we attempt to find the entry using access token to see if it's still valid
+            //We assume we're mostly using access tokens, so we attempt to find the entry using access token to see if it's still valid
             val userToken = tokenRepository.findByAccessToken(token)
 
             //we'll assume it's null in the off chance the user is hitting the refresh endpoint to refresh their access token using the refresh token

@@ -1,0 +1,1 @@
+CREATE TABLE projects_users(user_id varchar(512) references users(username),project_id integer references projects(project_id));

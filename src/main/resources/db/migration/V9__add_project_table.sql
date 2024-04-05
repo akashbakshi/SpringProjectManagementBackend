@@ -1,0 +1,1 @@
+CREATE TABLE projects(project_id serial not null primary key, project_acronym varchar(128) not null unique, name varchar(512) not null, thumbnail_url varchar(1024), description varchar(1024),owner varchar(512) not null, foreign key (owner) references users(username),date_created timestamp default now(), is_archived boolean not null default false);
