@@ -144,7 +144,7 @@ class UserController(private val userRepository: UserRepository,private val toke
             }
 
             //Create the entity that will go in our DB
-            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0,rolesToAdd.toSet(), emptySet() )
+            val newUser = User(userDTO.username,userDTO.password,userDTO.email,userDTO.name,false,LocalDateTime.now(ZoneId.of("UTC")),null,null,null,false,0,rolesToAdd.toSet(), emptySet(), emptySet() )
             newUser.password = BCryptPasswordEncoder().encode(userDTO.password) // encrypt the password
             userRepository.save(newUser)
 

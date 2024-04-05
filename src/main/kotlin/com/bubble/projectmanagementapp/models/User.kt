@@ -44,6 +44,10 @@ class User (
 
     @OneToMany(mappedBy = "username")
     @JsonBackReference
-    var tokens: Set<Token>
+    var tokens: Set<Token>,
+
+    @OneToMany(mappedBy = "owner")
+    @JsonBackReference
+    var projects: Set<Project>
 
 )
