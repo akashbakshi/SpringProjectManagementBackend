@@ -33,5 +33,14 @@ class Project (
                 name = "projects_users",
                 joinColumns = [JoinColumn(name = "project_id")],
                 inverseJoinColumns = [JoinColumn(name = "user_id")])
-        var members: Set<User>
+        var members: Set<User>,
+
+        @ManyToMany(fetch = FetchType.EAGER)
+        @JoinTable(name = "tasks_projects", joinColumns = [JoinColumn(name = "projectId")], inverseJoinColumns = [JoinColumn(name ="taskId")])
+        var tasks: Set<Task>,
+
+        @ManyToMany(fetch = FetchType.EAGER)
+        @JoinTable(name= "projects_status", joinColumns = [JoinColumn(name = "projectId")], inverseJoinColumns = [JoinColumn(name = "statusId")])
+        var statuses: Set<Status>,
+
 )

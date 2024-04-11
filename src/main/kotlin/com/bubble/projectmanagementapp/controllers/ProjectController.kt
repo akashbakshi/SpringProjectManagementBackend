@@ -39,7 +39,7 @@ class ProjectController(private val projectRepository: ProjectRepository,private
             val username = claimsFromToken.subject
 
 
-            if(projectToFind.members.map { it.username }.contains(username)){
+            if(projectToFind.members.map { it.username }.contains(username) || projectToFind.owner.username == username){
                 return ResponseEntity.ok(projectToFind)
             }else{
                 return ResponseEntity.badRequest().body("You do not have permission to view this project")

@@ -50,7 +50,12 @@ class User (
     @JsonBackReference
     var projects: Set<Project>,
 
-    @ManyToMany(mappedBy = "members")
+    @OneToMany(mappedBy = "createdBy")
     @JsonBackReference
-    var memberOfProjects: Set<Project>
+    var tasksCreated: Set<Task>,
+
+    @OneToMany(mappedBy = "assignedTo")
+    @JsonBackReference
+    var assignedTasks: Set<Task>
+
 )
