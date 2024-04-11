@@ -5,6 +5,7 @@ data class ProjectDto(
         var name: String,
         var description: String?,
         var thumbnail_url: String?,
-        var createdBy: String
+        var createdBy: String,
+        var members: Set<String>
 
 )

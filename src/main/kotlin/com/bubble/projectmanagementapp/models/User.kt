@@ -48,6 +48,9 @@ class User (
 
     @OneToMany(mappedBy = "owner")
     @JsonBackReference
-    var projects: Set<Project>
+    var projects: Set<Project>,
 
+    @ManyToMany(mappedBy = "members")
+    @JsonBackReference
+    var memberOfProjects: Set<Project>
 )

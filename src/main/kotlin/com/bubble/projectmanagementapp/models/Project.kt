@@ -26,5 +26,12 @@ class Project (
         var dateCreated: LocalDateTime,
 
         @Column(name = "is_archived")
-        var isArchived: Boolean
+        var isArchived: Boolean,
+
+        @ManyToMany(fetch = FetchType.EAGER)
+        @JoinTable(
+                name = "projects_users",
+                joinColumns = [JoinColumn(name = "project_id")],
+                inverseJoinColumns = [JoinColumn(name = "user_id")])
+        var members: Set<User>
 )
