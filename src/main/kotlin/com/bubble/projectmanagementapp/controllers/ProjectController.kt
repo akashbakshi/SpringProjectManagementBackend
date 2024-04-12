@@ -87,6 +87,7 @@ class ProjectController(private val projectRepository: ProjectRepository,private
             return ResponseEntity.internalServerError().body("Failed to fetch project with key: '$key' due to server error")
         }
     }
+
     @PostMapping
     fun createNewProject(@RequestBody newProject: ProjectDto):ResponseEntity<*>{
         try{
@@ -181,5 +182,74 @@ class ProjectController(private val projectRepository: ProjectRepository,private
             return ResponseEntity.internalServerError().body("Failed to create new task due to server error")
         }
 
+    }
+
+    @PutMapping("tasks/{id}")
+    fun updateTask(@PathVariable("id") id:Int,@RequestBody updatedTask: TaskDto): ResponseEntity<*>{
+        val currentTask = taskRepository.findById(id).getOrNull()
+
+        if(currentTask == null)
+            return ResponseEntity.badRequest().body("Could not find task with ID $id")
+
+        if(!currentTask.title.isNullOrEmpty() && currentTask.title != updatedTask.name )
+            currentTask.title = updatedTask.name
+
+        if(!currentTask.description.isNullOrEmpty() && currentTask.description != updatedTask.description)
+            currentTask.description = updatedTask.description
+
+        if(currentTask.assignedTo != null && currentTask.assignedTo?.username != updatedTask.assignedToStr)
+        {
+            val assignee = userRepository.findById(updatedTask.assignedToStr ?: "").getOrNull()
+
+            if(assignee != null)
+                currentTask.assignedTo = assignee
+        }
+
+        taskRepository.save(currentTask)
+        return ResponseEntity.ok(currentTask)
+    }
+
+    @PatchMapping("tasks/{id}/assignee")
+    fun assignUserToTask(@PathVariable id: Int,@RequestBody taskDto: TaskDto):ResponseEntity<*>{
+
+        val project = projectRepository.findById(taskDto.projectId)
+
+        if(project == null)
+            return ResponseEntity.badRequest().body("Could not find project with ID '${taskDto.projectId}'")
+
+        val assignee = userRepository.findById(taskDto.assignedToStr ?: "").getOrNull()
+
+        if(assignee == null)
+            return ResponseEntity.badRequest().body("Could not find user '$assignee' as the assignee")
+
+        val taskToFind = taskRepository.findById(id).getOrNull()
+
+        if(taskToFind == null)
+            return ResponseEntity.badRequest().body("Could not find task with ID'$id'")
+
+        taskToFind.assignedTo = assignee
+
+        taskRepository.save(taskToFind)
+
+        return ResponseEntity.ok(taskToFind)
+    }
+
+    @PatchMapping("tasks/{id}/status")
+    fun updateTaskStatus(@PathVariable("id") id: Int,@RequestBody taskDto: TaskDto):ResponseEntity<*>{
+        val currentTask = taskRepository.findById(id).getOrNull()
+
+        if(currentTask == null)
+            return ResponseEntity.badRequest().body("Could not find task with ID $id")
+
+        val status = statusRepository.findById(taskDto.status).getOrNull()
+
+        if(status == null)
+            return ResponseEntity.badRequest().body("Could not find status ${taskDto.status}")
+
+        currentTask.status = status
+
+        taskRepository.save(currentTask)
+
+        return ResponseEntity.ok(currentTask)
     }
 }
