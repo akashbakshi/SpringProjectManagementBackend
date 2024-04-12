@@ -18,18 +18,19 @@ class Task (
     var dateCreated: LocalDateTime,
 
     @ManyToOne
-    @JoinColumn(name = "status_id", referencedColumnName = "status_id")
+    @JoinColumn(name = "status", nullable = false)
     var status: Status,
 
     @ManyToOne
-    @JoinColumn(name = "created_by", referencedColumnName = "created_by")
+    @JoinColumn(name = "createdBy", nullable = false)
     var createdBy: User,
 
     @ManyToOne
-    @JoinColumn(name = "assigned_to", referencedColumnName = "assigned_to")
-    var assignedTo: User,
+    @JoinColumn(name = "assignedTo", nullable = true)
+    var assignedTo: User?,
 
     @JsonBackReference
-    @ManyToMany(mappedBy = "tasks")
-    var projects: Set<Project>
+    @ManyToOne
+    @JoinColumn(name = "projectId", nullable = false)
+    var projectId: Project
 )

@@ -3,7 +3,7 @@ package com.bubble.projectmanagementapp.models
 import com.fasterxml.jackson.annotation.JsonBackReference
 import jakarta.persistence.*
 
-@Entity
+@Entity(name="status")
 class Status(
 
     @Id
