@@ -137,6 +137,46 @@ class ProjectController(private val projectRepository: ProjectRepository,private
         }
     }
 
+    @PutMapping
+    fun updateProject(@RequestBody updatedProject: ProjectDto):ResponseEntity<*>{
+        try{
+
+            val projectToFind = projectRepository.findByAcronym(updatedProject.acronym) ?: return ResponseEntity.badRequest().body("Error: Cannot update project because a project with the key '${updatedProject.acronym}' cannot be found")
+
+            if( updatedProject.name != projectToFind.name)
+                projectToFind.name = updatedProject.name
+
+            if(updatedProject.thumbnail_url != projectToFind.thumbnail_url){
+                //TODO: upload image
+                projectToFind.thumbnail_url = updatedProject.thumbnail_url
+            }
+
+            if(updatedProject.description != null && updatedProject.description != projectToFind.description){
+                projectToFind.description = updatedProject.description
+            }
+
+            if(updatedProject.members.isNotEmpty()){
+                val existingMembers = projectToFind.members.toMutableSet() // convert the existing members to a mutable set
+
+                updatedProject.members.forEach {m->
+                    val memberToAdd = userRepository.findById(m).getOrNull() // try and find the members using the username provided from the front end
+
+                    if(memberToAdd != null && !projectToFind.members.contains(memberToAdd)){ // make sure the member profile is found and isn't already associated to this project
+                        existingMembers.add(memberToAdd)
+                    }
+                }
+
+                projectToFind.members = existingMembers // add our updated list of members
+            }
+
+            projectRepository.save(projectToFind) // save the updated project
+
+            return ResponseEntity.ok(projectToFind)
+        }catch(e: Exception){
+            return ResponseEntity.badRequest().body("Failed to update project because of an exception")
+        }
+    }
+
     @PostMapping("tasks")
     fun createNewTask(@RequestBody newTask: TaskDto): ResponseEntity<*>{
 
@@ -205,6 +245,17 @@ class ProjectController(private val projectRepository: ProjectRepository,private
                 currentTask.assignedTo = assignee
         }
 
+
+        if(currentTask.status.id != updatedTask.status ){
+            val newStatus = statusRepository.findById(updatedTask.status).getOrNull()
+
+            if(newStatus == null)
+                return ResponseEntity.badRequest().body("Could not find status ${updatedTask.status}")
+
+            currentTask.status = newStatus
+        }
+
+
         taskRepository.save(currentTask)
         return ResponseEntity.ok(currentTask)
     }
@@ -217,17 +268,22 @@ class ProjectController(private val projectRepository: ProjectRepository,private
         if(project == null)
             return ResponseEntity.badRequest().body("Could not find project with ID '${taskDto.projectId}'")
 
-        val assignee = userRepository.findById(taskDto.assignedToStr ?: "").getOrNull()
-
-        if(assignee == null)
-            return ResponseEntity.badRequest().body("Could not find user '$assignee' as the assignee")
-
         val taskToFind = taskRepository.findById(id).getOrNull()
+
 
         if(taskToFind == null)
             return ResponseEntity.badRequest().body("Could not find task with ID'$id'")
 
-        taskToFind.assignedTo = assignee
+        if(taskDto.assignedToStr != null){
+            val assignee = userRepository.findById(taskDto.assignedToStr).getOrNull()
+
+            if(assignee == null)
+                return ResponseEntity.badRequest().body("Could not find user '$assignee' as the assignee")
+
+            taskToFind.assignedTo = assignee
+        }else{
+            taskToFind.assignedTo = null
+        }
 
         taskRepository.save(taskToFind)
 
