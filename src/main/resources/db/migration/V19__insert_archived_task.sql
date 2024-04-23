@@ -1,0 +1,1 @@
+INSERT INTO status(title) VALUES ('Archive');

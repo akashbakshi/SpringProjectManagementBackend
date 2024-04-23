@@ -35,7 +35,7 @@ class Project (
                 inverseJoinColumns = [JoinColumn(name = "user_id")])
         var members: Set<User>,
 
-        @OneToMany(mappedBy = "projectId")
+        @OneToMany(mappedBy = "project")
         var tasks: Set<Task>,
 
         @ManyToMany(fetch = FetchType.EAGER)
@@ -45,4 +45,6 @@ class Project (
                 inverseJoinColumns = [JoinColumn(name = "status_id")])
         var statuses: Set<Status>,
 
+        @OneToMany(mappedBy = "project")
+        var boards: Set<Board>
 )

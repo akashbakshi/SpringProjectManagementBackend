@@ -1,11 +1,12 @@
 package com.bubble.projectmanagementapp.repository
 
-import com.bubble.projectmanagementapp.models.Task
+import com.bubble.projectmanagementapp.models.Board
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 
-@Repository
-interface TaskRepository: CrudRepository<Task,Int> {
 
-    fun findByProject_Acronym(key: String): List<Task>
+@Repository
+interface BoardRepository: CrudRepository<Board,Long> {
+
+    fun findByProject_ProjectId(projectId: Int): List<Board>
 }

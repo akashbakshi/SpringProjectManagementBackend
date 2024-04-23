@@ -1,0 +1,1 @@
+ALTER TABLE boards ADD COLUMN project_id integer references projects(project_id);

@@ -1,19 +1,16 @@
 package com.bubble.projectmanagementapp.controllers
 
+import com.bubble.projectmanagementapp.dtos.BoardDto
 import com.bubble.projectmanagementapp.dtos.ProjectDto
-import com.bubble.projectmanagementapp.models.Project
-import com.bubble.projectmanagementapp.models.User
-import com.bubble.projectmanagementapp.models.Status
 import com.bubble.projectmanagementapp.dtos.TaskDto
-import com.bubble.projectmanagementapp.models.Task
-import com.bubble.projectmanagementapp.repository.ProjectRepository
-import com.bubble.projectmanagementapp.repository.StatusRepository
-import com.bubble.projectmanagementapp.repository.TaskRepository
-import com.bubble.projectmanagementapp.repository.UserRepository
+import com.bubble.projectmanagementapp.models.*
+import com.bubble.projectmanagementapp.repository.*
 import com.bubble.projectmanagementapp.services.JWTService
+import org.springframework.data.jpa.domain.AbstractPersistable_.id
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
+import java.net.ResponseCache
 import java.net.URI
 import java.time.LocalDateTime
 import kotlin.jvm.optionals.getOrNull
@@ -21,7 +18,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @RestController
 @RequestMapping("/api/v1/projects/")
-class ProjectController(private val projectRepository: ProjectRepository,private val userRepository: UserRepository,private val taskRepository: TaskRepository,private val jwtService: JWTService,private val statusRepository: StatusRepository) {
+class ProjectController(private val projectRepository: ProjectRepository,private val boardRepository: BoardRepository,private val userRepository: UserRepository,private val taskRepository: TaskRepository,private val jwtService: JWTService,private val statusRepository: StatusRepository) {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -74,7 +71,7 @@ class ProjectController(private val projectRepository: ProjectRepository,private
 
             if(projectToFind.members.map { it.username }.contains(username) || projectToFind.owner.username == username){
 
-                val tasksInProject = taskRepository.findByProjectId_Acronym(key)
+                val tasksInProject = taskRepository.findByProject_Acronym(key)
                 return ResponseEntity.ok(tasksInProject)
             }else{
                 return ResponseEntity.badRequest().body("You do not have permission to view this project")
@@ -86,6 +83,16 @@ class ProjectController(private val projectRepository: ProjectRepository,private
 
             return ResponseEntity.internalServerError().body("Failed to fetch project with key: '$key' due to server error")
         }
+    }
+
+
+    @GetMapping("{key}/boards")
+    fun getProjectBoards(@PathVariable("key") key: String): ResponseEntity<*>{
+        val project = projectRepository.findByAcronym(key) ?: return ResponseEntity.badRequest().body("No project with key: $key")
+
+        val boards = boardRepository.findByProject_ProjectId(project.projectId)
+
+        return ResponseEntity.ok(boards)
     }
 
     @PostMapping
@@ -125,7 +132,8 @@ class ProjectController(private val projectRepository: ProjectRepository,private
 
             val project = Project(0,newProject.acronym.uppercase(),newProject.name,newProject.thumbnail_url,newProject.description,userToFind, LocalDateTime.now(),false,members,
                 emptySet(),
-                standardStatuses
+                standardStatuses,
+                emptySet()
             )
 
             projectRepository.save(project)
@@ -206,7 +214,12 @@ class ProjectController(private val projectRepository: ProjectRepository,private
                 return ResponseEntity.internalServerError().body("Failed to get default status of 'TO DO'")
             }
 
-            val task = Task(0,newTask.name,newTask.description, LocalDateTime.now(),defaultStartStatus,createdBy,assignedTo,project)
+            var board: Board? = null
+            if(newTask.boardId != null){
+                board = boardRepository.findById(newTask.boardId).getOrNull()
+            }
+
+            val task = Task(0,newTask.name,newTask.description, LocalDateTime.now(),defaultStartStatus,createdBy,assignedTo,project,board)
 
             taskRepository.save(task)
 
@@ -255,6 +268,12 @@ class ProjectController(private val projectRepository: ProjectRepository,private
             currentTask.status = newStatus
         }
 
+        var board: Board? = null
+        if(updatedTask.boardId != null){
+            board = boardRepository.findById(updatedTask.boardId).getOrNull()
+
+            currentTask.boardId = board
+        }
 
         taskRepository.save(currentTask)
         return ResponseEntity.ok(currentTask)
@@ -307,5 +326,124 @@ class ProjectController(private val projectRepository: ProjectRepository,private
         taskRepository.save(currentTask)
 
         return ResponseEntity.ok(currentTask)
+    }
+
+
+    @GetMapping("boards/{id}")
+    fun getBoardById(@PathVariable("id") id:Long):ResponseEntity<*>{
+        try{
+            val board = boardRepository.findById(id).getOrNull() ?: return ResponseEntity.badRequest().body("Could not find board with ID $id")
+
+            return ResponseEntity.ok(board)
+        }catch(ex:Exception){
+            println(ex.message)
+            println(ex.stackTraceToString())
+            return ResponseEntity.internalServerError().body("Failed to fetch board with ID $id")
+        }
+    }
+    @PostMapping("boards")
+    fun createBoard(@RequestBody newBoard: BoardDto): ResponseEntity<*>{
+        try{
+
+            var project: Project? = null
+
+            project = projectRepository.findById(newBoard.projectId).getOrNull() ?: return ResponseEntity.badRequest().body("Failed to find project with id ${newBoard.projectId}")
+
+            val board = Board(0,newBoard.name,newBoard.goal, LocalDateTime.now(), newBoard.targetDueDate,true,
+                emptySet(),
+                project
+            )
+
+            boardRepository.save(board)
+
+            return ResponseEntity.created(URI.create("/api/v1/projects/boards/${board.id}")).body(board)
+        }catch(ex:Exception){
+
+            println(ex.message)
+            println(ex.stackTraceToString())
+
+            return ResponseEntity.internalServerError().body("Failed to create board")
+        }
+    }
+
+    @PutMapping("boards/{id}")
+    fun updateBoard(@PathVariable("id") id: Long,@RequestBody updatedBoard: BoardDto):ResponseEntity<*>{
+
+        var originalBoard = boardRepository.findById(id).getOrNull() ?: return ResponseEntity.badRequest().body("Could not find board with ID $id")
+
+        if(originalBoard.name != updatedBoard.name){
+            originalBoard.name = updatedBoard.name
+        }
+
+        if(originalBoard.goal != updatedBoard.goal){
+            originalBoard.goal = updatedBoard.goal
+        }
+
+        if(originalBoard.targetDueDate != null && originalBoard.targetDueDate != updatedBoard.targetDueDate){
+            originalBoard.targetDueDate = updatedBoard.targetDueDate
+        }
+
+        if(originalBoard.isActive != updatedBoard.isActive){
+            originalBoard.isActive = updatedBoard.isActive
+        }
+
+
+        try{
+            boardRepository.save(originalBoard)
+
+            return ResponseEntity.ok(originalBoard)
+        }catch (ex:Exception){
+            println(ex.message)
+            println(ex.stackTraceToString())
+
+            return ResponseEntity.internalServerError().body("Failed to update board")
+        }
+    }
+
+    @PatchMapping("boards/{boardId}/tasks/{taskId}")
+    fun changeTask(@PathVariable("boardId") boardId: Long,@PathVariable("taskId") taskId: Int):ResponseEntity<*>{
+
+        val task = taskRepository.findById(taskId).getOrNull() ?: return ResponseEntity.badRequest().body("Could not find task with ID ${taskId}")
+        val board = boardRepository.findById(boardId).getOrNull()
+
+        //The user can specify -1 as the boardId if he would like to remove the task from the board
+        //The user will specify the actual boardId if he would like to add the task into that board
+        if(boardId.toInt() > 0){
+
+            if( board != null){
+                //Make sure the task and the board belong to the same project
+                if(board.project.projectId != task.project.projectId){
+                    return ResponseEntity.badRequest().body("Task Project ${task.project.projectId} and Board Project ${board.project.projectId} do not match.")
+                }
+                task.boardId = board
+
+                val existingTasks = board.tasks.toMutableSet()
+                existingTasks.add(task)
+
+                board.tasks = existingTasks
+            }
+
+
+        }else{
+            task.boardId = null
+
+        }
+
+        try{
+
+
+            taskRepository.save(task)
+
+            if(board != null)
+                boardRepository.save(board)
+
+            return ResponseEntity.ok().body(task)
+        }catch(ex:Exception){
+            println(ex.message)
+            println(ex.stackTraceToString())
+
+            return ResponseEntity.internalServerError().body("Failed to add task ${taskId} to board ${boardId}")
+        }
+
     }
 }

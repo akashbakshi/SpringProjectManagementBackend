@@ -1,0 +1,1 @@
+ALTER TABLE tasks ADD COLUMN board_id integer references boards(board_id);

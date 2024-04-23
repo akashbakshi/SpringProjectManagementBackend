@@ -32,5 +32,10 @@ class Task (
     @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "projectId", nullable = false)
-    var projectId: Project
+    var project: Project,
+
+    @JsonBackReference
+    @ManyToOne
+    @JoinColumn(name = "boardId", nullable = true)
+    var boardId: Board?
 )

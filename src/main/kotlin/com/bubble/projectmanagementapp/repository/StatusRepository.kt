@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository
 @Repository
 interface StatusRepository: CrudRepository<Status, Long> {
 
-    @Query("select s from status s where upper(s.title) IN ('TO DO','IN PROGRESS','DONE')")
+    @Query("select s from status s where upper(s.title) IN ('TO DO','IN PROGRESS','DONE','ARCHIVE')")
     fun findStandardStatuses(): Set<Status>
 }

@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository
 interface ProjectRepository: CrudRepository<Project,Int> {
 
     fun findByAcronym(acronym: String): Project?
+
 }
